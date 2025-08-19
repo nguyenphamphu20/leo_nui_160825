@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Tây Ninh 160825 - Tường Ảnh Vô Tận</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap"
+            rel="stylesheet" />
+        <style>
+            :root {
+                color-scheme: dark;
+            }
+            html,
+            body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            body {
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+                background: #0b0d12;
+                color: #e5e7eb;
+            }
+
+            .stage {
+                position: fixed;
+                inset: 0;
+                width: 100%;
+                height: 100vh;
+                height: 100svh;
+            }
+            .belt {
+                position: absolute;
+                inset: 0;
+                overflow: hidden;
+                background: radial-gradient(1600px 700px at 30% 120%, rgba(99, 102, 241, 0.14), transparent 60%),
+                    radial-gradient(1200px 500px at 80% -20%, rgba(236, 72, 153, 0.12), transparent 65%),
+                    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+            }
+            .row {
+                position: absolute;
+                left: 0;
+                display: flex;
+                gap: 12px;
+                will-change: transform;
+            }
+
+            /* Thẻ ảnh: bo góc + viền màu tinh tế */
+            .tile {
+                position: relative;
+                border-radius: 18px;
+                overflow: hidden;
+                background: #0f1420;
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(99, 102, 241, 0.08),
+                    0 8px 22px rgba(236, 72, 153, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+                transition: transform 0.28s ease, box-shadow 0.28s ease, filter 0.28s ease;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+            .tile::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: 18px;
+                padding: 1px;
+                pointer-events: none;
+                background: linear-gradient(
+                    135deg,
+                    rgba(99, 102, 241, 0.55),
+                    rgba(236, 72, 153, 0.45),
+                    rgba(16, 185, 129, 0.45)
+                );
+                -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+                -webkit-mask-composite: xor;
+                mask-composite: exclude;
+            }
+            .tile:hover {
+                transform: translateY(-6px) scale(1.01);
+                filter: brightness(1.05) saturate(1.05);
+            }
+            .tile img {
+                display: block;
+                height: 100%;
+                width: 100%;
+                object-fit: cover;
+            }
+
+            /* Mép mờ để cảm giác vô tận */
+            .fades {
+                pointer-events: none;
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(90deg, #0b0d12, transparent 8%, transparent 92%, #0b0d12),
+                    linear-gradient(180deg, #0b0d12, transparent 12%, transparent 88%, #0b0d12);
+            }
+
+            /* Hạt sáng nền */
+            .particles {
+                pointer-events: none;
+                position: absolute;
+                inset: 0;
+                overflow: hidden;
+            }
+            .particle {
+                position: absolute;
+                width: 6px;
+                height: 6px;
+                border-radius: 9999px;
+                background: radial-gradient(circle at 30% 30%, #fff, rgba(255, 255, 255, 0.18) 55%, transparent);
+                opacity: 0.55;
+                filter: blur(0.2px);
+                animation: floatUp linear infinite;
+            }
+            @keyframes floatUp {
+                from {
+                    transform: translateY(12%);
+                    opacity: 0;
+                }
+                15% {
+                    opacity: 0.7;
+                }
+                to {
+                    transform: translateY(-110%);
+                    opacity: 0;
+                }
+            }
+
+            /* Viewer phủ toàn màn hình */
+            .viewer {
+                position: fixed;
+                inset: 0;
+                display: none;
+                place-items: center;
+                background: rgba(5, 7, 12, 0.92);
+                backdrop-filter: blur(12px) saturate(1.3);
+                z-index: 50;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .viewer.active {
+                display: grid;
+                opacity: 1;
+            }
+
+            .viewer-inner {
+                max-width: min(92vw, 1680px);
+                max-height: min(92vh, 92svh);
+                border-radius: 20px;
+                overflow: hidden;
+                background: #0b0f18;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 10px 40px rgba(99, 102, 241, 0.15);
+                position: relative;
+                transform: scale(0.9);
+                transition: transform 0.3s ease;
+            }
+            .viewer.active .viewer-inner {
+                transform: scale(1);
+            }
+            .viewer-toolbar {
+                position: absolute;
+                inset: 12px 12px auto auto;
+                display: flex;
+                gap: 8px;
+                z-index: 2;
+            }
+            .btn {
+                background: rgba(255, 255, 255, 0.08);
+                color: #e5e7eb;
+                padding: 8px 10px;
+                border-radius: 999px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                transition: transform 0.15s ease, background 0.15s ease, filter 0.15s ease;
+                cursor: pointer;
+            }
+            .btn:hover {
+                background: rgba(255, 255, 255, 0.14);
+                transform: translateY(-1px);
+                filter: brightness(1.05);
+            }
+
+            .viewer-img-wrap {
+                position: relative;
+                overflow: auto;
+                max-width: 100%;
+                max-height: 100%;
+            }
+            .viewer-img {
+                display: block;
+                max-width: 100%;
+                max-height: 100%;
+                margin: 0 auto;
+                transition: transform 0.2s ease;
+                transform-origin: center center;
+                user-select: none;
+                -webkit-user-drag: none;
+            }
+            .viewer-caption {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.75));
+                color: #e5e7eb;
+                padding: 16px 18px;
+                font-size: 14px;
+                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+            }
+
+            /* Title và hướng dẫn */
+            .title {
+                position: absolute;
+                top: 20px;
+                left: 0;
+                right: 0;
+                text-align: center;
+                z-index: 10;
+                pointer-events: none;
+            }
+            .title h1 {
+                font-size: 3.5rem;
+                font-weight: 800;
+                margin: 0;
+                background: linear-gradient(135deg, #6366f1, #ec4899, #10b981);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+                letter-spacing: 1px;
+            }
+            .title p {
+                font-size: 1.1rem;
+                margin: 12px 0 0;
+                color: rgba(229, 231, 235, 0.8);
+                font-weight: 500;
+            }
+
+            /* Nút điều khiển */
+            .controls {
+                position: absolute;
+                bottom: 20px;
+                left: 0;
+                right: 0;
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                z-index: 10;
+            }
+            .control-btn {
+                background: rgba(255, 255, 255, 0.1);
+                color: #e5e7eb;
+                padding: 10px 16px;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                transition: all 0.2s ease;
+                cursor: pointer;
+                font-weight: 600;
+                backdrop-filter: blur(10px);
+            }
+            .control-btn:hover {
+                background: rgba(255, 255, 255, 0.15);
+                transform: translateY(-2px);
+            }
+
+            /* Loading */
+            .loading {
+                position: fixed;
+                inset: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background: #0b0d12;
+                z-index: 100;
+                transition: opacity 0.5s ease;
+            }
+            .loading-spinner {
+                width: 50px;
+                height: 50px;
+                border: 5px solid rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                border-top: 5px solid #6366f1;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="loading">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div class="title">
+            <h1>TÂY NINH 160825</h1>
+            <p>Nhấp vào ảnh để xem chi tiết • Scroll để phóng to/thu nhỏ</p>
+        </div>
+
+        <section class="stage">
+            <div id="belt" class="belt">
+                <div class="fades"></div>
+                <div id="particles" class="particles"></div>
+            </div>
+        </section>
+
+        <div class="controls">
+            <button id="pauseBtn" class="control-btn">Tạm dừng</button>
+            <button id="speedUpBtn" class="control-btn">Tăng tốc</button>
+            <button id="speedDownBtn" class="control-btn">Giảm tốc</button>
+            <button id="reverseBtn" class="control-btn">Đảo chiều</button>
+        </div>
+
+        <!-- Viewer phóng to -->
+        <div id="viewer" class="viewer" aria-hidden="true">
+            <div class="viewer-inner">
+                <div class="viewer-toolbar">
+                    <button id="zoomOut" class="btn" title="Thu nhỏ">➖</button>
+                    <button id="zoomIn" class="btn" title="Phóng to">➕</button>
+                    <button id="closeViewer" class="btn" title="Đóng">✕</button>
+                </div>
+                <div class="viewer-img-wrap">
+                    <img id="viewerImg" class="viewer-img" alt="" />
+                </div>
+                <div id="viewerCaption" class="viewer-caption"></div>
+            </div>
+        </div>
+
+        <script>
+            // Danh sách ảnh Tây Ninh từ thư mục images
+            const IMAGE_LIST = [
+                'images/z6914927216292_7f353f92e199e457a955c81236d3ebe4.jpg',
+                'images/z6914927336925_c3f8a7fd628d7cd3642486f30102a87e.jpg',
+                'images/z6915709015654_93f60ab66cbd495464a1a5447d483826.jpg',
+                'images/z6915709653844_23305efc5a33b00f5a24e70aaa50bd52.jpg',
+                'images/z6914927218641_9fdffd0ae2e843e53e9691c58edd0a52.jpg',
+                'images/z6915706816396_0d06311cae46b9a6b5a12f0a08f3d17d.jpg',
+                'images/z6915709133780_339f3b05c22f077ba2d5808bbdbf9c90.jpg',
+                'images/z6915710786779_c017ce1f8f3c8708cd733b31db2b647d.jpg',
+                'images/z6914927230449_25965b0420001ad0f5551cd902bde311.jpg',
+                'images/z6915706867779_40b25fad8643936dbf8fd3f114236af3.jpg',
+                'images/z6915709149003_3422d38dd4b1e4c62337b6cba70a08be.jpg',
+                'images/z6915710811616_bafa1e6e03123bf8b10590647a53308d.jpg',
+                'images/z6914927256493_db790d9b65667b2526350711fca464ce.jpg',
+                'images/z6915706872588_c78e36556dead9c0226115ee26435309.jpg',
+                'images/z6915709381118_641a448d0affa920d2ba24c8275595bb.jpg',
+                'images/z6915710816848_308a5bce372661c1a287e12daa6b8f77.jpg',
+                'images/z6914927261588_02d81aee8b2442e8c8ae0c148ef2c0f4.jpg',
+                'images/z6915707056903_1be33320d1b64d7947e1a8c5fc2632ee.jpg',
+                'images/z6915709391506_2958bee9b410f8d19e44f776fdcee60d.jpg',
+                'images/z6915710821407_1a34d46da6cafc2833f39b75ba659992.jpg',
+                'images/z6914927265368_0cdff365731a89c4ba83cd8ac8aebbb6.jpg',
+                'images/z6915707073045_be02a15b655769b34f6865abcefb6f0c.jpg',
+                'images/z6915709423413_72aa283260cd3759e0183e38ad6a36d7.jpg',
+                'images/z6915710851038_4b8d1373d912e874d21db072c98f73c6.jpg',
+                'images/z6914927272339_7b524658db17f28373bb690eb2cebbed.jpg',
+                'images/z6915707095812_462753b099290c1c5e9790a03b5a7fe8.jpg',
+                'images/z6915709450764_b64f9429e12b9b9b04f3769fc31e28f7.jpg',
+                'images/z6915710868493_3286f83f63408f66f9b2da2a9b30761b.jpg',
+                'images/z6914927300974_91ad7003ec65b7b6aa7457beaa396734.jpg',
+                'images/z6915707116347_39bcda4fc307f630e3869501af1fb69e.jpg',
+                'images/z6915709516026_59b9522efd05a472b9d0f90fabbe0bf4.jpg',
+                'images/z6915710870137_a12b791d187a01e7c5e5a1fccc740de8.jpg',
+                'images/z6914927306773_a47a2ff178c614dbff2a12162100b69b.jpg',
+                'images/z6915707122686_6f506d84b0d50ff0d39c6fda66c7d3cc.jpg',
+                'images/z6915709594445_e9bf055140edb7e598c21778d45a2a16.jpg',
+                'images/z6915711120747_002f931504bbfd49f99decc31266a809.jpg',
+                'images/z6914927323088_0d4d454dac187a3bc5fd83a791a4262e.jpg',
+                'images/z6915708981794_4ad7c75e65367723cc42da1f498f10cc.jpg',
+                'images/z6915709617075_6ad4ae07fd5558f0fb640a16b9a9e37d.jpg',
+                'images/z6915711174750_92b027ec9144137ce36315d03dbff697.jpg',
+                'images/z6914927332294_4e14c4255266a87f0390362fa42cddbb.jpg',
+                'images/z6915708988850_4abee83793e7b1f72d487d25954fd205.jpg',
+                'images/z6915709641962_2ac4051389e6769db2873e380821561c.jpg',
+            ];
+
+            const belt = document.getElementById('belt');
+            const particlesEl = document.getElementById('particles');
+            const loadingEl = document.querySelector('.loading');
+
+            // Viewer
+            const viewer = document.getElementById('viewer');
+            const viewerImg = document.getElementById('viewerImg');
+            const viewerCaption = document.getElementById('viewerCaption');
+            const closeViewerBtn = document.getElementById('closeViewer');
+            const zoomInBtn = document.getElementById('zoomIn');
+            const zoomOutBtn = document.getElementById('zoomOut');
+
+            // Controls
+            const pauseBtn = document.getElementById('pauseBtn');
+            const speedUpBtn = document.getElementById('speedUpBtn');
+            const speedDownBtn = document.getElementById('speedDownBtn');
+            const reverseBtn = document.getElementById('reverseBtn');
+
+            // Trạng thái
+            let playing = true;
+            let direction = 1;
+            let pxPerSec = 66;
+            let rows = [];
+            let lastTs = 0;
+            let requestId = null;
+
+            // Zoom state
+            let zoomLevel = 1;
+            const ZOOM_MIN = 1;
+            const ZOOM_MAX = 3;
+
+            // Tối ưu hóa hiệu suất
+            let lastTime = 0;
+            const fps = 60;
+            const interval = 1000 / fps;
+
+            // Utils
+            function shuffle(a) {
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            }
+
+            function preloadImages(list) {
+                return Promise.all(
+                    list.map(
+                        (src) =>
+                            new Promise((resolve) => {
+                                const img = new Image();
+                                img.onload = () =>
+                                    resolve({ src, w: img.naturalWidth || 800, h: img.naturalHeight || 600 });
+                                img.onerror = () => resolve({ src, w: 800, h: 600 });
+                                img.src = src;
+                            })
+                    )
+                );
+            }
+
+            function buildRows(items) {
+                rows.forEach((r) => r.el.remove());
+                rows = [];
+
+                const H = belt.clientHeight;
+                const W = belt.clientWidth;
+
+                const baseRow = Math.max(2, Math.min(5, Math.floor(H / 160)));
+                const extraRow = W >= 1800 ? 1 : 0;
+                const rowCount = baseRow + extraRow;
+
+                for (let r = 0; r < rowCount; r++) {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'row';
+
+                    const rowHeight = Math.round(H * (0.18 + r * 0.02));
+                    const topGap = (H - rowCount * rowHeight) / (rowCount + 1);
+                    const top = Math.round(topGap + r * (rowHeight + topGap));
+                    rowEl.style.top = top + 'px';
+                    rowEl.style.height = rowHeight + 'px';
+
+                    // Tạo nhiều ảnh hơn để đảm bảo vô tận
+                    const perRowMin = 30;
+                    const perRowVar = 15;
+                    const mult = W >= 1800 ? 1.5 : 1;
+                    const count = Math.min(items.length, Math.round((perRowMin + Math.random() * perRowVar) * mult));
+                    const picks = shuffle([...items]).slice(0, count);
+
+                    const cluster = document.createElement('div');
+                    cluster.style.display = 'flex';
+                    cluster.style.gap = '12px';
+                    const cluster2 = document.createElement('div');
+                    cluster2.style.display = 'flex';
+                    cluster2.style.gap = '12px';
+
+                    function tileFor(item) {
+                        const t = document.createElement('div');
+                        t.className = 'tile';
+                        const h = rowHeight;
+                        const w = Math.max(120, Math.round(h * (item.w / item.h)));
+                        t.style.width = w + 'px';
+                        t.style.height = h + 'px';
+                        const fileName = item.src.split('/').pop();
+                        t.innerHTML = `<img src="${item.src}" alt="${fileName}" loading="lazy">`;
+
+                        // Chỉ mở viewer khi click
+                        t.addEventListener('click', () => openViewer(item.src, fileName));
+
+                        return t;
+                    }
+                    picks.forEach((it) => cluster.appendChild(tileFor(it)));
+                    picks.forEach((it) => cluster2.appendChild(tileFor(it)));
+
+                    const wrap = document.createElement('div');
+                    wrap.style.display = 'flex';
+                    wrap.style.gap = '12px';
+                    wrap.appendChild(cluster);
+                    wrap.appendChild(cluster2);
+
+                    // Thêm bản sao để tạo hiệu ứng vô tận
+                    wrap.appendChild(cluster.cloneNode(true));
+                    wrap.appendChild(cluster2.cloneNode(true));
+
+                    rowEl.appendChild(wrap);
+                    belt.appendChild(rowEl);
+
+                    const lengthPx = wrap.scrollWidth / 4; // Chia cho 4 vì có 4 clusters
+                    const startOffset = Math.round(Math.random() * lengthPx);
+                    rows.push({
+                        el: rowEl,
+                        wrap,
+                        length: lengthPx,
+                        offset: startOffset,
+                        speed: pxPerSec * (0.7 + Math.random() * 0.6) * (r % 2 === 0 ? 1 : 0.9),
+                        dir: r % 2 === 0 ? 1 : -1,
+                    });
+                }
+            }
+
+            function animate(timestamp) {
+                if (!lastTs) lastTs = timestamp;
+
+                // Điều khiển FPS để tối ưu hiệu suất
+                const now = timestamp;
+                const delta = now - lastTime;
+
+                if (delta > interval) {
+                    lastTime = now - (delta % interval);
+
+                    const dt = (timestamp - lastTs) / 1000;
+                    lastTs = timestamp;
+
+                    if (playing) {
+                        rows.forEach((r) => {
+                            const move = r.speed * direction * r.dir * dt;
+                            r.offset = (r.offset + move) % r.length;
+                            r.wrap.style.transform = `translateX(${-r.offset}px)`;
+                        });
+                    }
+                }
+
+                requestId = requestAnimationFrame(animate);
+            }
+
+            function spawnParticles(n = 18) {
+                const W = belt.clientWidth;
+                for (let i = 0; i < n; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'particle';
+                    const size = Math.random() * 6 + 3;
+                    p.style.width = size + 'px';
+                    p.style.height = size + 'px';
+                    p.style.left = Math.random() * W + 'px';
+                    p.style.top = '100%';
+                    p.style.animationDuration = Math.random() * 3 + 4 + 's';
+                    p.style.animationDelay = Math.random() * 1.2 + 's';
+                    particlesEl.appendChild(p);
+                    setTimeout(() => p.remove(), 7000);
+                }
+            }
+
+            // Viewer logic
+            function openViewer(src, caption) {
+                viewerImg.src = src;
+                viewerCaption.textContent = caption || '';
+                viewer.classList.add('active');
+                viewer.setAttribute('aria-hidden', 'false');
+                zoomLevel = 1;
+                applyZoom();
+                // tạm dừng chuyển động khi đang xem
+                playing = false;
+                pauseBtn.textContent = 'Tiếp tục';
+            }
+
+            function closeViewerAction() {
+                viewer.classList.remove('active');
+                viewer.setAttribute('aria-hidden', 'true');
+                viewerImg.src = '';
+                playing = true;
+                pauseBtn.textContent = 'Tạm dừng';
+            }
+
+            function applyZoom() {
+                viewerImg.style.transform = `scale(${zoomLevel})`;
+                viewerImg.style.cursor = zoomLevel > 1 ? 'grab' : 'default';
+            }
+
+            function clamp(v, min, max) {
+                return Math.max(min, Math.min(max, v));
+            }
+
+            // Event listeners
+            zoomInBtn.addEventListener('click', () => {
+                zoomLevel = clamp(zoomLevel + 0.2, ZOOM_MIN, ZOOM_MAX);
+                applyZoom();
+            });
+
+            zoomOutBtn.addEventListener('click', () => {
+                zoomLevel = clamp(zoomLevel - 0.2, ZOOM_MIN, ZOOM_MAX);
+                applyZoom();
+            });
+
+            closeViewerBtn.addEventListener('click', closeViewerAction);
+
+            viewer.addEventListener('click', (e) => {
+                if (e.target === viewer) closeViewerAction();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeViewerAction();
+                }
+            });
+
+            // Controls
+            pauseBtn.addEventListener('click', () => {
+                playing = !playing;
+                pauseBtn.textContent = playing ? 'Tạm dừng' : 'Tiếp tục';
+            });
+
+            speedUpBtn.addEventListener('click', () => {
+                pxPerSec = Math.min(200, pxPerSec + 20);
+                rows.forEach((row) => {
+                    row.speed = pxPerSec * (0.7 + Math.random() * 0.6) * (rows.indexOf(row) % 2 === 0 ? 1 : 0.9);
+                });
+            });
+
+            speedDownBtn.addEventListener('click', () => {
+                pxPerSec = Math.max(20, pxPerSec - 20);
+                rows.forEach((row) => {
+                    row.speed = pxPerSec * (0.7 + Math.random() * 0.6) * (rows.indexOf(row) % 2 === 0 ? 1 : 0.9);
+                });
+            });
+
+            reverseBtn.addEventListener('click', () => {
+                direction *= -1;
+            });
+
+            // Kéo để pan khi zoom
+            let isPanning = false,
+                startX = 0,
+                startY = 0,
+                scrollLeft = 0,
+                scrollTop = 0;
+            const wrap = document.querySelector('.viewer-img-wrap');
+
+            wrap.addEventListener('mousedown', (e) => {
+                if (zoomLevel <= 1) return;
+                isPanning = true;
+                wrap.style.cursor = 'grabbing';
+                startX = e.pageX - wrap.offsetLeft;
+                startY = e.pageY - wrap.offsetTop;
+                scrollLeft = wrap.scrollLeft;
+                scrollTop = wrap.scrollTop;
+                e.preventDefault();
+            });
+
+            wrap.addEventListener('mouseleave', () => {
+                isPanning = false;
+                wrap.style.cursor = 'default';
+            });
+
+            wrap.addEventListener('mouseup', () => {
+                isPanning = false;
+                wrap.style.cursor = zoomLevel > 1 ? 'grab' : 'default';
+            });
+
+            wrap.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                const x = e.pageX - wrap.offsetLeft;
+                const y = e.pageY - wrap.offsetTop;
+                const walkX = x - startX;
+                const walkY = y - startY;
+                wrap.scrollLeft = scrollLeft - walkX;
+                wrap.scrollTop = scrollTop - walkY;
+            });
+
+            // Cuộn để zoom
+            wrap.addEventListener(
+                'wheel',
+                (e) => {
+                    if (!viewer.classList.contains('active')) return;
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? -0.15 : 0.15;
+                    zoomLevel = clamp(zoomLevel + delta, ZOOM_MIN, ZOOM_MAX);
+                    applyZoom();
+                },
+                { passive: false }
+            );
+
+            // Resize
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => buildRows(CACHE_ITEMS), 120);
+            });
+
+            // Khởi tạo
+            let CACHE_ITEMS = [];
+            preloadImages(IMAGE_LIST).then((items) => {
+                CACHE_ITEMS = shuffle(items);
+                buildRows(CACHE_ITEMS);
+                spawnParticles(22);
+
+                // Ẩn loading
+                loadingEl.style.opacity = '0';
+                setTimeout(() => {
+                    loadingEl.style.display = 'none';
+                }, 500);
+
+                // Bắt đầu animation
+                requestId = requestAnimationFrame(animate);
+
+                // Tạo particles định kỳ
+                setInterval(() => spawnParticles(8), 3000);
+            });
+        </script>
+    </body>
+</html>
